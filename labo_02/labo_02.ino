@@ -35,7 +35,7 @@ const int celebrateLightParameter = 5;
 #define ALL_LEDS 0
 #define LEDNUM  12
 #define LED_PIN 44
-MeRGBLed led( 0, LEDNUM );  //////////////////////////////////////CHECK FOR LEDS PLEAAAAAASE/////////////////////////////////////////////
+MeRGBLed led( 0, LEDNUM );
 //
 
 void setup() {
