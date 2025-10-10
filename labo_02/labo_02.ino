@@ -30,7 +30,7 @@ enum State {NORMAL, RALENTI, DANGER, RONDE};
 State currentState = NORMAL;
 const int eightyThreshold = 80;
 const int fortyThreshold = 40;
-const int celebrateLightParameter = 5;
+const int celebrateLightParameter = 4;
 
 #define ALL_LEDS 0
 #define LEDNUM  12
