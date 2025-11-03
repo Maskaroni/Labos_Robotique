@@ -294,7 +294,7 @@ void pivotTask(short speed, short firstRun) {
   previousError = error;
     
   encoderLeft.setMotorPwm(speed - output);
-  encoderRight.setMotorPwm(speed - output);
+  encoderRight.setMotorPwm(speed - output);             // CHECKER SI +speed + output
 
   if (gyro.getAngleZ() >= zAngleGoal) {
 
