@@ -21,16 +21,16 @@ const int twentyThreshold = 20;
 
 double zAngleGoal = 0.0;
 long position = 0.0;
-long leftPosition = 100;  //max 2000
-long rightPosition = -100;  //max -2000
+long leftPosition = 255;  //max 2000
+long rightPosition = -255;  //max -2000
 
 short int leftSpeed = 100;
 short int rightSpeed = 100;
 long minSpeed = 60;
-long maxSpeed = 255;   // Speed variables
+long maxSpeed = 240;   // Speed variables
 
-enum State {GO, DANGER, PIVOT};
-State currentState = GO; // States
+enum State {CHECK_FOR_LINE, GO, DANGER, PIVOT};
+State currentState = CHECK_FOR_LINE; // States
 
 #define ALL_LEDS 0
 #define LEDNUM  12
@@ -182,7 +182,7 @@ void goStraight(short speed = 100, short firstRun = 0) {
   encoderRight.setMotorPwm(-speed - output);
 }
 
-void pivotTask(short speed, short firstRun = 0) {
+void pivot(short speed, short firstRun = 0, int goToAngle = 0) {
     
   static double error = 0.0;
   static double previousError = 0.0;
@@ -200,19 +200,18 @@ void pivotTask(short speed, short firstRun = 0) {
   if (firstRun) {
     firstRun = 0;
 
-    encoderLeft.setMotorPwm(speed);
-    encoderRight.setMotorPwm(speed);
-
     gyro.resetData();
 
     double tempAngle = gyro.getAngleZ();
-    zAngleGoal = tempAngle + 180;
+    zAngleGoal = tempAngle + goToAngle;
+
+    encoderLeft.setMotorPwm(speed);
+    encoderRight.setMotorPwm(speed);
       
     return;
   }
     
   error = gyro.getAngleZ() - zAngleGoal;
-  Serial.println(gyro.getAngleZ());
 
     
   // Google : ELI5 PID
@@ -238,6 +237,9 @@ void loop() {
 
   switch (currentState) {
 
+    case CHECK_FOR_LINE:
+      checkForLine();
+      break;
     case GO:
       going(ct);
       break;
@@ -313,19 +315,9 @@ short isTouchingLine() {
     capteurs[i].valNormed = ((capteurs[i].newVal - capteurs[i].valMin) * 1.0 / (capteurs[i].valMax - capteurs[i].valMin) * 1000.0);
 
     if (100 < capteurs[i].valNormed) {
+
       capteurs[i].isOnLine = 1;
-
-      return 1;
     }
-  }
-}
-
-void normalize() {
-
-  for (int i = 0; i < nbrCapteurs; i++) {
-
-    capteurs[i].newVal = sees.analogRead(i);
-    capteurs[i].valNormed = ((capteurs[i].newVal - capteurs[i].valMin) * 1.0 / (capteurs[i].valMax - capteurs[i].valMin) * 1000.0);
   }
 }
 
@@ -369,6 +361,38 @@ void calibratePos(float pos) {
 //   encoderRight.setMotorPwm(-cruisingSpeed);
 // }
 
+void checkForLine() {
+
+  Serial.println("Checking time");
+
+  static bool firstTime = true;
+
+  if (firstTime) {
+
+    goStraight(maxSpeed/2, 1);
+
+    firstTime = false;
+  }
+
+  goStraight(maxSpeed/2, 0);
+
+  bool transToGo = false;
+
+  for (int i = 0; i < nbrCapteurs; i++) {
+
+    if (capteurs[i].isOnLine > 0) {
+      transToGo = true;   //pour ne pas qu'il retourne à false si le prochaine n'est pas sur la ligne
+    }
+  }
+
+  if (transToGo) {
+    currentState = GO;
+
+    firstTime = true;
+    return;
+  }
+}
+
 void going(unsigned long ct) {
 
   Serial.println("Go time");
@@ -385,7 +409,7 @@ void going(unsigned long ct) {
 
   bool transToDanger = dist <= thirdyThreshold;
 
-  //bool transToPivot = dist <= twentyThreshold;
+  bool transToPivot = dist <= twentyThreshold;
 
   if (transToDanger) {
     currentState = DANGER;
@@ -394,12 +418,12 @@ void going(unsigned long ct) {
     return;
   }
 
-  // if (transToPivot) {
-  //   currentState = PIVOT;
+  if (transToPivot) {
+    currentState = PIVOT;
 
-  //   firstTime = true;
-  //   return;
-  // }
+    firstTime = true;
+    return;
+  }
 }
 
 void slowing() {
@@ -415,12 +439,12 @@ void slowing() {
     firstTime = false;
   }
 
-  slow();
+  goStraight(minSpeed, 0);
 
   bool transToGo = true;
   if ((position > 2000) || (position < -2000)) {
 
-    bool transToGo = false;
+    transToGo = false;
   }
 
   bool transToPivot = dist <= twentyThreshold;
@@ -448,11 +472,11 @@ void pivoting() {
 
   if (firstTime) {
 
-    pivotTask(minSpeed, 1);
+    pivot(minSpeed, 1, 100);
     firstTime = false;
   }
 
-  pivotTask(minSpeed, 0);
+  pivot(minSpeed, 0);
 
   if (gyro.getAngleZ() >= (zAngleGoal-1) || gyro.getAngleZ() <= ((-zAngleGoal)+1)) {
 
@@ -465,8 +489,8 @@ void pivoting() {
 void go() {
 
   // Ajuster la direction en fonction des valeurs
-  leftSpeed = map(position, 0, leftPosition, minSpeed, maxSpeed);
-  rightSpeed = map(position, 0, rightPosition, minSpeed, maxSpeed);
+  leftSpeed = map(position, rightPosition, leftPosition, minSpeed, maxSpeed);
+  rightSpeed = map(position, leftPosition, rightPosition, minSpeed, maxSpeed);
 
   Serial.print("L ");
   Serial.println(leftSpeed);
@@ -476,11 +500,6 @@ void go() {
 
   encoderLeft.setMotorPwm(leftSpeed);
   encoderRight.setMotorPwm(-rightSpeed);
-}
-
-void slow() {
-
-  goStraight(minSpeed, 0);
 }
 
 void stop() {

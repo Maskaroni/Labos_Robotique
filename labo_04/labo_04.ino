@@ -42,7 +42,7 @@ int duration[] = {
 
 #pragma endregion
 
-#pragma region - Variables for encoder ------------
+#pragma region - Encoder stuff ------------
 
 #define DIST_WHEEL 151
 #define DIA_WHEEL 64.5
@@ -56,9 +56,6 @@ int duration[] = {
 
 MeEncoderOnBoard encoderRight(SLOT1);
 MeEncoderOnBoard encoderLeft(SLOT2);
-#pragma endregion
-
-#pragma region - Encoder config ------------
 
 void rightEncoderInterrupt(void) {
   if(digitalRead(encoderRight.getPortB()) == 0)
