@@ -26,8 +26,8 @@ long rightPosition = -255;  //max -2000
 
 short int leftSpeed = 100;
 short int rightSpeed = 100;
-long minSpeed = 60;
-long maxSpeed = 240;   // Speed variables
+long minSpeed = 50;
+long maxSpeed = 80;   // Speed variables
 
 enum State {CHECK_FOR_LINE, GO, DANGER, PIVOT};
 State currentState = CHECK_FOR_LINE; // States
@@ -230,7 +230,7 @@ void loop() {
   dist = getDist(ct);
 
   isTouchingLine();
-  calibratePos(getPosition());
+  getPosition();
 
   Serial.print("P ");
   Serial.println(position);
